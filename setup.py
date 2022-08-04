@@ -13,7 +13,7 @@ def get_long_description() -> str:
 if __name__ == "__main__":
     setup(
         name="v2donut",
-        version="1.0.0",
+        version="1.0.1",
         description="自动获取、设置延迟最低的 V2Ray 节点",
         author="drawmoon",
         author_email="1340260725@qq.com",
