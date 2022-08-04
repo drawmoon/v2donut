@@ -5,6 +5,7 @@ import os
 
 from v2donut.appsettings import AppSettings
 from v2donut.subscription import VmessShare
+from v2donut.utils import isipaddress
 
 
 def gen_policy_settings():
@@ -21,43 +22,56 @@ def gen_policy_settings():
     return policy
 
 
-def gen_dns_settings():
-    dns = {
-        "hosts": {
-            "domain:v2fly.org": "www.vicemc.net",
-            "domain:github.io": "pages.github.com",
-            "domain:wikipedia.org": "www.wikimedia.org",
-            "domain:shadowsocks.org": "electronicsrealm.com",
-            "geosite:category-ads": "127.0.0.1",
-            "example.com": "1.2.3.4",
-        },
-        "servers": [
-            "1.1.1.1",
-            {"address": "114.114.114.114", "port": 53, "domains": ["geosite:cn"]},
-            "8.8.8.8",
-            "localhost",
-        ],
-    }
+def gen_dns_settings(settings: AppSettings):
+    hosts = {}
+    servers = []
 
-    return dns
+    for (k, v) in settings.dns.items():
+        if isipaddress(k):
+            servers.append({"address": k, "port": 53, "domains": v.split(",")})
+        else:
+            hosts[k] = v
+
+    return {"hosts": hosts, "servers": servers}
 
 
-def gen_routing_settings():
-    routing = {
-        "domainStrategy": "IPOnDemand",
-        "rules": [
-            {"type": "field", "ip": ["8.8.8.8", "1.1.1.1"], "outboundTag": "proxy"},
-            {
-                "type": "field",
-                "domain": ["geosite:microsoft", "geosite:stackexchange", "geosite:google"],
-                "outboundTag": "proxy",
-            },
-            {"type": "field", "ip": ["geoip:private"], "outboundTag": "blocked"},
-            {"type": "field", "domain": ["geosite:category-ads"], "outboundTag": "blocked"},
-        ],
-    }
+def gen_routing_settings(settings: AppSettings):
+    rules = []
 
-    return routing
+    proxy = settings.rules.get("proxy")
+    if proxy is not None:
+        ip = []
+        domain = []
+        for p in proxy:
+            if p.startswith("geoip:") or isipaddress(p):
+                ip.append(p)
+            else:
+                domain.append(p)
+        rules.append({"type": "field", "ip": ip, "domain": domain, "outboundTag": "proxy"})
+
+    direct = settings.rules.get("direct")
+    if direct is not None:
+        ip = []
+        domain = []
+        for d in direct:
+            if d.startswith("geoip:") or isipaddress(d):
+                ip.append(d)
+            else:
+                domain.append(d)
+        rules.append({"type": "field", "ip": ip, "domain": domain, "outboundTag": "direct"})
+
+    blocked = settings.rules.get("blocked")
+    if blocked is not None:
+        ip = []
+        domain = []
+        for b in blocked:
+            if b.startswith("geoip:") or isipaddress(b):
+                ip.append(b)
+            else:
+                domain.append(b)
+        rules.append({"type": "field", "ip": ip, "domain": domain, "outboundTag": "blocked"})
+
+    return {"domainStrategy": "IPOnDemand", "rules": rules}
 
 
 def gen_inbounds_settings(settings: AppSettings):
@@ -124,8 +138,8 @@ def gen_v2conf(v: VmessShare, settings: AppSettings):
     v2conf = {
         "log": {"loglevel": "warning"},
         "policy": gen_policy_settings(),
-        "dns": gen_dns_settings(),
-        "routing": gen_routing_settings(),
+        "dns": gen_dns_settings(settings),
+        "routing": gen_routing_settings(settings),
         "inbounds": gen_inbounds_settings(settings),
         "outbounds": gen_outbounds_settings(v),
         "other": {},

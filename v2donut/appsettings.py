@@ -10,3 +10,5 @@ class AppSettings:
         self.timeout = params.get("timeout", 0.8)
         self.socks_port = params.get("socks_port", 1080)
         self.http_port = params.get("http_port", 1081)
+        self.rules = params.get("rules", {})
+        self.dns = params.get("dns", {})
