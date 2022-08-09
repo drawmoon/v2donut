@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import sys
 from pathlib import Path
 
 from v2donut.appsettings import AppSettings
 from v2donut.ping import ping
 from v2donut.subscription import fetch
+from v2donut.utils import get_default_conf
 from v2donut.v2conf import gen_v2conf
 
 conf_file = Path.home() / "v2donut.json"
@@ -23,7 +23,8 @@ def helpme():
 
 def init_appsettings():
     if not os.path.exists(conf_file):
-        shutil.copyfile(Path.cwd() / "v2donut.json", conf_file)
+        with open(conf_file, "w") as cf:
+            json.dump(get_default_conf(), cf, indent=4)
 
 
 def main(mode: str):
