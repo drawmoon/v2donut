@@ -1,27 +1,61 @@
 from __future__ import annotations
 
+from threading import Thread, Lock
+
 import pythonping
 
 from v2donut.appsettings import AppSettings
 from v2donut.subscription import VmessShare
 
 
-def ping(vs: list[VmessShare], settings: AppSettings, mode="ping") -> tuple[VmessShare, float]:
-    c: tuple[VmessShare, float] | None = None
+best: tuple[VmessShare, float] | None = None
+lock = Lock()
+
+
+def ping(vs: list[VmessShare], settings: AppSettings, mode="ping") -> VmessShare:
+    ts = []
+
+    print(f"正在测试 {mode}", end='')
 
     for v in vs:
         if not v.host or v.host.isspace():
             continue
 
-        res = pythonping.ping(v.host, count=settings.count, timeout=settings.timeout)
-        if not res.success():
-            print(f"Ping {v.ps} [{v.host}], 时间=Timeout")
-            continue
+        t = Thread(
+            target=pings,
+            args=(
+                v,
+                settings.timeout,
+                settings.count,
+            ),
+        )
 
-        ms = res.rtt_avg_ms
-        print(f"Ping {v.ps} [{v.host}], 时间={ms}ms")
+        t.start()
+        ts.append(t)
 
-        if c is None or ms < c[1]:
-            c = (v, ms)
+    for t in ts:
+        t.join()
 
-    return c
+    v = best[0]
+
+    print(f"\n最快的服务器是 [{v.ps} - {v.host}], 时间={best[1]}ms")
+
+    return v
+
+
+def pings(v: VmessShare, timeout: int, count: int):
+    res = pythonping.ping(v.host, timeout, count)
+    if not res.success():
+        return
+
+    print(">", end="")
+
+    ms = res.rtt_avg_ms
+
+    global best
+    try:
+        lock.acquire()
+        if best is None or ms < best[1]:
+            best = (v, ms)
+    finally:
+        lock.release()

@@ -30,13 +30,10 @@ def init_appsettings():
 def main(mode: str):
     print(
         """
-              .oooo.         .o8                                        .   
-            .dP""Y88b       "888                                      .o8   
-oooo    ooo       ]8P'  .oooo888   .ooooo.  ooo. .oo.   oooo  oooo  .o888oo 
- `88.  .8'      .d8P'  d88' `888  d88' `88b `888P"Y88b  `888  `888    888   
-  `88..8'     .dP'     888   888  888   888  888   888   888   888    888   
-   `888'    .oP     .o 888   888  888   888  888   888   888   888    888 . 
-    `8'     8888888888 `Y8bod88P" `Y8bod8P' o888o o888o  `V88V"V8P'   "888" 
+     ___   _             _   
+ _ _|_  |_| |___ ___ _ _| |_ 
+| | |  _| . | . |   | | |  _|
+ \\_/|___|___|___|_|_|___|_|
     """
     )
 
@@ -45,13 +42,10 @@ oooo    ooo       ]8P'  .oooo888   .ooooo.  ooo. .oo.   oooo  oooo  .o888oo
         setting = AppSettings(**j)
 
     vs = fetch(setting.url)
+    best = ping(vs, setting, mode)
+    gen_v2conf(best, setting)
 
-    first = ping(vs, setting, mode)
-    v = first[0]
-
-    gen_v2conf(v, setting)
-
-    print(f"最快的服务器是 {v.ps} [{v.host}], 时间={first[1]}ms")
+    print(f"V2Ray 配置已调整为 [{best.ps} - {best.host}]")
 
 
 def patched_main():
